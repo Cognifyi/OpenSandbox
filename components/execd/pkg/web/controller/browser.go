@@ -15,7 +15,6 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -24,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/alibaba/opensandbox/execd/pkg/log"
+	"github.com/gin-gonic/gin"
 )
 
 type BrowserController struct {
@@ -72,7 +71,7 @@ func (c *BrowserController) CreateBrowser() {
 	// Assume port 9222 (needs to be parsed from browser output in production)
 	port := 9222
 	session := &BrowserSession{
-		PID:       cmd.Process.PID,
+		PID:       cmd.Process.Pid,
 		Port:      port,
 		DataDir:   "/tmp/browser-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		CreatedAt: time.Now(),
