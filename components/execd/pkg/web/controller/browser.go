@@ -85,7 +85,6 @@ func (c *BrowserController) CreateBrowser() {
 	c.ctx.JSON(200, gin.H{
 		"sessionId": sessionID,
 		"cdpPort":   port,
-		"cdpUrl":    fmt.Sprintf("ws://127.0.0.1:%d", port),
 	})
 }
 
