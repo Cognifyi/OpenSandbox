@@ -22,7 +22,7 @@ FROM opensandbox/browser-cdp-base:latest
 
 ARG TARGETARCH
 
-COPY --from=execd-stage /usr/local/bin/execd /usr/local/bin/execd
+COPY --from=execd-stage /execd /usr/local/bin/execd
 RUN chmod +x /usr/local/bin/execd
 
 # Copy scripts
