@@ -1,14 +1,15 @@
-# OpenSandbox Browser Sandbox 生产部署文档
+# OpenSandbox Browser Sandbox 部署文档
 
-本文档描述 OpenSandbox Browser Sandbox 的生产环境部署步骤，包括 Docker 镜像构建、服务配置、EvoCrawl API 集成以及可选的 OverlayFS 快照优化。
+本文档描述 OpenSandbox Browser Sandbox 的部署步骤，包括开发环境设置、Docker 镜像构建、服务配置、EvoCrawl API 集成以及 OverlayFS 快照优化。
 
 ## 目录
 
 - [前置要求](#前置要求)
+- [开发环境设置](#开发环境设置)
 - [Phase 1: Docker 镜像构建](#phase-1-docker-镜像构建)
 - [Phase 2: OpenSandbox Server 部署](#phase-2-opensandbox-server-部署)
 - [Phase 3: EvoCrawl API 集成](#phase-3-evocrawl-api-集成)
-- [Phase 4: OverlayFS 快照优化（可选）](#phase-4-overlayfs-快照优化可选)
+- [Phase 4: OverlayFS 快照优化](#phase-4-overlayfs-快照优化)
 - [监控与维护](#监控与维护)
 - [故障排查](#故障排查)
 
@@ -27,6 +28,65 @@
 - **OpenSandbox Server**: 用于管理 sandbox 生命周期
 - **EvoCrawl API**: 用于浏览器会话管理
 - **PostgreSQL/Supabase**: 用于会话持久化（EvoCrawl）
+
+## 开发环境设置
+
+### 前置条件
+
+- **Python 3.10+**
+- **uv** - Python 包管理器 ([安装指南](https://github.com/astral-sh/uv))
+- **Docker** - 用于运行 sandboxes
+
+### 快速设置
+
+```bash
+# 1. 导航到 server 目录
+cd /home/user/code/labs/OpenSandbox/server
+
+# 2. 安装依赖
+uv sync
+
+# 3. 复制示例配置文件
+cp opensandbox_server/examples/example.config.toml ~/.sandbox.toml
+
+# 4. 编辑配置文件
+vim ~/.sandbox.toml
+```
+
+### 配置文件说明
+
+配置文件位置：`~/.sandbox.toml`
+
+**关键配置项**：
+
+```toml
+[server]
+host = "0.0.0.0"
+port = 8080
+api_key = "your-secret-api-key"  # 生产环境必须设置
+
+[log]
+level = "INFO"  # 开发环境使用 "DEBUG"
+
+[runtime]
+type = "docker"
+execd_image = "opensandbox/execd:latest"
+
+[docker]
+network_mode = "bridge"  # 或 "host"
+
+[browser]
+enable_overlayfs_snapshots = true  # 默认启用 OverlayFS
+```
+
+### 运行开发服务器
+
+```bash
+cd /home/user/code/labs/OpenSandbox/server
+uv run python -m opensandbox_server.main
+```
+
+更多开发细节请参考 [server/DEVELOPMENT.md](server/DEVELOPMENT.md) 和 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## Phase 1: Docker 镜像构建
 
@@ -66,49 +126,32 @@ docker push your-registry.com/opensandbox/browser-cdp:latest
 
 ## Phase 2: OpenSandbox Server 部署
 
-### 2.1 安装 OpenSandbox Server
+### 2.1 使用 Browser 专用配置
+
+我们提供了预配置的 browser 专用配置文件，可直接使用：
 
 ```bash
+# 复制 browser 专用配置
+cp /home/user/code/labs/OpenSandbox/server/opensandbox_server/examples/browser.config.toml ~/.sandbox.toml
+
+# 启动服务器
 cd /home/user/code/labs/OpenSandbox/server
-
-# 安装依赖
-uv sync --all-groups
-
-# 配置环境
-cp opensandbox_server/examples/example.config.toml ~/.sandbox.toml
-
-# 编辑配置文件
-vim ~/.sandbox.toml
+uv run python -m opensandbox_server.main
 ```
 
-### 2.2 配置 OpenSandbox Server
+**browser.config.toml** 已包含以下预配置：
+- Docker 运行时配置
+- browser-cdp 镜像支持
+- OverlayFS 快照优化（默认启用）
+- Bridge 网络模式
 
-编辑 `~/.sandbox.toml`：
+### 2.2 生产环境部署
 
-```toml
-[server]
-host = "0.0.0.0"
-port = 8080
+#### 使用 systemd
 
-[runtime]
-type = "docker"  # 或 "kubernetes"
-
-[docker]
-network_mode = "bridge"
-
-# Browser Sandbox Configuration（默认启用 OverlayFS）
-[browser]
-enable_overlayfs_snapshots = true  # 默认为 true，推荐生产环境启用
-```
-
-### 2.3 启动 OpenSandbox Server
+创建 systemd 服务文件：
 
 ```bash
-# 开发模式
-uv run python -m opensandbox_server.main
-
-# 生产模式（使用 systemd 或 supervisord）
-# 创建 systemd 服务文件
 sudo vim /etc/systemd/system/opensandbox.service
 ```
 
@@ -117,7 +160,8 @@ sudo vim /etc/systemd/system/opensandbox.service
 ```ini
 [Unit]
 Description=OpenSandbox Lifecycle Server
-After=network.target
+After=network.target docker.service
+Requires=docker.service
 
 [Service]
 Type=simple
@@ -139,6 +183,30 @@ sudo systemctl daemon-reload
 sudo systemctl enable opensandbox
 sudo systemctl start opensandbox
 sudo systemctl status opensandbox
+```
+
+#### 使用 Docker Compose
+
+创建 `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  opensandbox-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.sandbox.toml:/root/.sandbox.toml:ro
+    environment:
+      - SANDBOX_CONFIG_PATH=/root/.sandbox.toml
+    restart: unless-stopped
+    depends_on:
+      - docker
 ```
 
 ## Phase 3: EvoCrawl API 集成
@@ -186,11 +254,11 @@ curl -X POST http://localhost:3002/api/v2/browser \
 }
 ```
 
-## Phase 4: OverlayFS 快照优化（默认启用）
+## Phase 4: OverlayFS 快照优化
 
 ### 4.1 OverlayFS 自动启用
 
-**重要**：OverlayFS 快照功能现在**默认启用**，无需手动配置。
+**重要**：OverlayFS 快照功能在 browser 专用配置中**默认启用**。
 
 当 OpenSandbox Server 检测到使用 `browser-cdp` 镜像时，会自动注入 `ENABLE_OVERLAYFS_SNAPSHOTS=true` 环境变量。
 

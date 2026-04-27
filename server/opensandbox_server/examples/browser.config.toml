@@ -1,0 +1,81 @@
+# Copyright 2025 Alibaba Group Holding Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Browser Sandbox Configuration for OpenSandbox Server
+#
+# This configuration is pre-configured for browser sandbox usage with OverlayFS snapshots enabled.
+# Copy this file to ~/.sandbox.toml to use:
+#   cp opensandbox_server/examples/browser.config.toml ~/.sandbox.toml
+#
+# Full configuration reference: https://github.com/alibaba/OpenSandbox/blob/main/server/configuration.md
+
+[server]
+host = "0.0.0.0"
+port = 8080
+max_sandbox_timeout_seconds = 86400
+
+# API Key Authentication
+# IMPORTANT: Set a strong API key for production use
+# If api_key stays empty, startup requires explicit acknowledgment:
+# - Interactive TTY: type YES when prompted
+# - Non-interactive: set OPENSANDBOX_INSECURE_SERVER=YES
+api_key = "your-secret-api-key-change-this"
+
+[log]
+level = "INFO"
+
+[runtime]
+type = "docker"
+execd_image = "opensandbox/execd:latest"
+
+[storage]
+# Allowlist of host path prefixes permitted for bind mounts.
+# For browser sandboxes, you may want to allow specific paths for downloads or profiles
+# Example: allowed_host_paths = ["/data/browser-downloads", "/tmp/browser"]
+allowed_host_paths = []
+
+# Default storage size for auto-created Kubernetes PVCs
+volume_default_size = "1Gi"
+
+[docker]
+network_mode = "bridge"
+# Drop dangerous capabilities and block privilege escalation
+drop_capabilities = ["AUDIT_WRITE", "MKNOD", "NET_ADMIN", "NET_RAW", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_TIME", "SYS_TTY_CONFIG"]
+no_new_privileges = true
+# Optional: set an AppArmor profile name (e.g., "docker-default") when AppArmor is enabled
+apparmor_profile = ""
+# Limit process count to reduce host impact from fork bombs
+pids_limit = 4096
+# Seccomp profile: empty string uses Docker default
+seccomp_profile = ""
+
+# Browser Sandbox Configuration
+[browser]
+# Enable OverlayFS snapshots for browser sandboxes (recommended for production)
+# This provides fast snapshot creation and rollback for browser sessions
+# When enabled, the server automatically injects ENABLE_OVERLAYFS_SNAPSHOTS=true
+# into containers using browser-cdp images
+enable_overlayfs_snapshots = true
+
+[ingress]
+mode = "direct"
+
+[egress]
+image = "opensandbox/egress:latest"
+mode = "dns"
+
+# 🧪 [EXPERIMENTAL] Renew-on-access. Off by default
+[renew_intent]
+enabled = false
+min_interval_seconds = 60
