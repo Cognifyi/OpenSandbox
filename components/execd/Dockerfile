@@ -34,13 +34,13 @@ COPY components/execd ./components/execd
 
 WORKDIR /build/components/execd
 
-RUN CGO_ENABLED=0 go build \
+RUN CGO_ENABLED=0 go build -mod=mod \
     -ldflags "-X 'github.com/alibaba/opensandbox/internal/version.Version=${VERSION}' \
               -X 'github.com/alibaba/opensandbox/internal/version.BuildTime=${BUILD_TIME}' \
               -X 'github.com/alibaba/opensandbox/internal/version.GitCommit=${GIT_COMMIT}'" \
     -o /build/execd ./main.go
 
-RUN CGO_ENABLED=0 GOOS=windows go build \
+RUN CGO_ENABLED=0 GOOS=windows go build -mod=mod \
     -ldflags "-X 'github.com/alibaba/opensandbox/internal/version.Version=${VERSION}' \
               -X 'github.com/alibaba/opensandbox/internal/version.BuildTime=${BUILD_TIME}' \
               -X 'github.com/alibaba/opensandbox/internal/version.GitCommit=${GIT_COMMIT}'" \

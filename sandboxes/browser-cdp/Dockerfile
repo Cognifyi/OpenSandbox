@@ -13,42 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Build execd
-FROM golang:1.25.9 AS builder
+# Two-stage build: First build execd from monorepo root, then use it here
+# Build command: docker build -t opensandbox/execd:latest -f components/execd/Dockerfile .
+# Then build this image: docker build -t opensandbox/browser-cdp:latest -f sandboxes/browser-cdp/Dockerfile .
 
-WORKDIR /build
-
-ARG VERSION=dev
-ARG GIT_COMMIT=unknown
-ARG BUILD_TIME=unknown
-
-# Prepare local modules to satisfy replace directives.
-COPY components/internal/go.mod components/internal/go.sum ./components/internal/
-COPY components/execd/go.mod components/execd/go.sum ./components/execd/
-
-# Download deps with only mod files for better caching.
-RUN cd components/internal && go mod download
-RUN cd components/execd && go mod download
-
-# Copy sources.
-COPY components/internal ./components/internal
-COPY components/execd ./components/execd
-
-WORKDIR /build/components/execd
-
-RUN CGO_ENABLED=0 go build \
-    -ldflags "-X 'github.com/alibaba/opensandbox/internal/version.Version=${VERSION}' \
-              -X 'github.com/alibaba/opensandbox/internal/version.BuildTime=${BUILD_TIME}' \
-              -X 'github.com/alibaba/opensandbox/internal/version.GitCommit=${GIT_COMMIT}'" \
-    -o /build/execd ./main.go
+FROM opensandbox/execd:latest AS execd-stage
 
 # Final image
 FROM opensandbox/code-interpreter-base:latest
 
 ARG TARGETARCH
 
-# Copy execd
-COPY --from=builder /build/execd /usr/local/bin/execd
+# Copy execd from the pre-built execd image
+COPY --from=execd-stage /execd /usr/local/bin/execd
 RUN chmod +x /usr/local/bin/execd
 
 # Install Chromium and dependencies (use Google Chrome repository instead of snap)
@@ -95,7 +72,6 @@ RUN chmod +x /opt/opensandbox/browser-launch.sh /opt/opensandbox/browser-entrypo
 
 # Environment variables
 ENV EXECD_PORT=44772 \
-    EXECD_ACCESS_TOKEN= \
     BROWSER_LAUNCH_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --disable-software-rasterizer --disable-background-networking --disable-default-apps --disable-extensions --disable-sync --disable-translate --no-first-run --safebrowsing-disable-auto-update" \
     BROWSER_CDP_PORT=0 \
     ENABLE_OVERLAYFS_SNAPSHOTS=false \
