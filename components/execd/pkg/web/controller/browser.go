@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -57,25 +58,37 @@ func (c *BrowserController) CreateBrowser() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Launch browser
+	// Launch browser and capture stdout to get the actual CDP port
 	cmd := exec.Command("/opt/opensandbox/browser-launch.sh", "/tmp/browser-"+strconv.FormatInt(time.Now().UnixNano(), 10))
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Error("Failed to create stdout pipe: %v", err)
+		c.ctx.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
 	if err := cmd.Start(); err != nil {
 		log.Error("Failed to start browser: %v", err)
 		c.ctx.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Get CDP port from environment variable
-	cdpPortEnv := os.Getenv("BROWSER_CDP_PORT")
-	port := 9222 // default
-	if cdpPortEnv != "" && cdpPortEnv != "0" {
-		if p, err := strconv.Atoi(cdpPortEnv); err == nil {
-			port = p
-		}
+	// Read the CDP port from stdout
+	portBuf := make([]byte, 10)
+	n, err := stdout.Read(portBuf)
+	if err != nil {
+		log.Error("Failed to read CDP port: %v", err)
+		c.ctx.JSON(500, gin.H{"error": "Failed to read CDP port"})
+		return
 	}
 
-	// Wait for CDP port to be ready
-	time.Sleep(2 * time.Second)
+	portStr := strings.TrimSpace(string(portBuf[:n]))
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Error("Failed to parse CDP port from output: %s, error: %v", portStr, err)
+		c.ctx.JSON(500, gin.H{"error": "Failed to parse CDP port"})
+		return
+	}
 	session := &BrowserSession{
 		PID:       cmd.Process.Pid,
 		Port:      port,

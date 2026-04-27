@@ -43,9 +43,30 @@ else
     mkdir -p "$USER_DATA_DIR"
 fi
 
-# Launch Chromium with CDP enabled
-exec "$BROWSER_BIN" \
+# Launch Chromium with CDP enabled in background
+"$BROWSER_BIN" \
     --remote-debugging-port="$CDP_PORT" \
     --user-data-dir="$USER_DATA_DIR" \
     $BROWSER_LAUNCH_ARGS \
-    "$@"
+    "$@" &
+
+BROWSER_PID=$!
+
+# Wait for browser to start
+sleep 2
+
+# If port was 0 (auto-assign), find the actual port
+if [ "$CDP_PORT" = "0" ]; then
+    # Find the listening port for this process
+    CDP_PORT=$(ss -tlnp 2>/dev/null | grep "pid=$BROWSER_PID" | awk '{print $4}' | cut -d: -f2 | head -1)
+    if [ -z "$CDP_PORT" ]; then
+        # Fallback: use lsof
+        CDP_PORT=$(lsof -nP -iTCP -sTCP:LISTEN -p $BROWSER_PID 2>/dev/null | awk '{print $9}' | cut -d: -f2 | head -1)
+    fi
+fi
+
+# Output the actual CDP port to stdout
+echo "$CDP_PORT"
+
+# Keep the script running (don't exit, let browser run)
+wait $BROWSER_PID
