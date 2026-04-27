@@ -47,7 +47,7 @@ cd /home/user/code/labs/OpenSandbox/server
 uv sync
 
 # 3. 复制示例配置文件
-cp opensandbox_server/examples/example.config.toml ~/.sandbox.toml
+cp server/opensandbox_server/examples/browser.config.toml ~/.sandbox.toml
 
 # 4. 编辑配置文件
 vim ~/.sandbox.toml
