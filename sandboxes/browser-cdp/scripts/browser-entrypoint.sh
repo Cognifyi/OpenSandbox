@@ -5,11 +5,15 @@ set -e
 export JUPYTER_HOST=""
 export JUPYTER_TOKEN=""
 
-# Start execd
-/usr/local/bin/execd &
-
-# Wait for execd to be ready
-sleep 2
+# Check if execd is already running (injected by OpenSandbox server)
+if pgrep -x execd > /dev/null; then
+    echo "execd is already running, skipping manual start"
+else
+    # Start execd (for standalone use without OpenSandbox server)
+    /usr/local/bin/execd &
+    # Wait for execd to be ready
+    sleep 2
+fi
 
 # Keep container running
 wait
