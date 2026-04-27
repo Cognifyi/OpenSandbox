@@ -55,6 +55,12 @@ pids_limit = 4096
 # Seccomp profile: empty string uses Docker default; set to an absolute path for a custom profile
 seccomp_profile = ""
 
+# Browser Sandbox Configuration
+[browser]
+# Enable OverlayFS snapshots for browser sandboxes (recommended for production)
+# This provides fast snapshot creation and rollback for browser sessions
+enable_overlayfs_snapshots = true
+
 [ingress]
 mode = "direct"
 

@@ -777,6 +777,15 @@ class DockerConfig(BaseModel):
     )
 
 
+class BrowserConfig(BaseModel):
+    """Browser sandbox specific configuration."""
+
+    enable_overlayfs_snapshots: bool = Field(
+        default=True,
+        description="Enable OverlayFS snapshots for browser sandboxes (recommended for production).",
+    )
+
+
 class AppConfig(BaseModel):
     """Root application configuration model."""
 
@@ -799,6 +808,10 @@ class AppConfig(BaseModel):
     secure_runtime: Optional[SecureRuntimeConfig] = Field(
         default=None,
         description="Secure container runtime configuration (gVisor, Kata, Firecracker).",
+    )
+    browser: BrowserConfig = Field(
+        default_factory=BrowserConfig,
+        description="Browser sandbox specific configuration.",
     )
 
     @model_validator(mode="after")

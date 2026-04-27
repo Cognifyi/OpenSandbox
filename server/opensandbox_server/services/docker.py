@@ -2255,6 +2255,13 @@ class DockerSandboxService(DockerDiagnosticsMixin, OSSFSMixin, SandboxService, E
             if value is None:
                 continue
             environment.append(f"{key}={value}")
+
+        # Inject browser-specific environment variables
+        if self.app_config.browser.enable_overlayfs_snapshots:
+            # Check if this is a browser sandbox by image name
+            if "browser-cdp" in request.image.uri.lower():
+                environment.append("ENABLE_OVERLAYFS_SNAPSHOTS=true")
+
         return labels, environment
 
     def _resolve_image_auth(

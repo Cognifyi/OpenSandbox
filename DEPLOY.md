@@ -93,9 +93,12 @@ port = 8080
 [runtime]
 type = "docker"  # 或 "kubernetes"
 
-[sandbox]
-default_image = "opensandbox/browser-cdp:latest"
-default_timeout = 3600  # 秒
+[docker]
+network_mode = "bridge"
+
+# Browser Sandbox Configuration（默认启用 OverlayFS）
+[browser]
+enable_overlayfs_snapshots = true  # 默认为 true，推荐生产环境启用
 ```
 
 ### 2.3 启动 OpenSandbox Server
@@ -151,6 +154,8 @@ BROWSER_SERVICE_TYPE=opensandbox  # 关键配置：启用 OpenSandbox 类型
 BROWSER_SERVICE_API_KEY=your-api-key  # 可选
 ```
 
+**注意**：OverlayFS 优化由 OpenSandbox Server 自动注入，无需在 EvoCrawl 中额外配置。当 Server 检测到使用 `browser-cdp` 镜像时，会自动注入 `ENABLE_OVERLAYFS_SNAPSHOTS=true` 环境变量。
+
 ### 3.2 验证集成
 
 ```bash
@@ -181,40 +186,56 @@ curl -X POST http://localhost:3002/api/v2/browser \
 }
 ```
 
-## Phase 4: OverlayFS 快照优化（可选）
+## Phase 4: OverlayFS 快照优化（默认启用）
 
-### 4.1 启用 OverlayFS
+### 4.1 OverlayFS 自动启用
 
-OverlayFS 快照功能为可选启用，通过环境变量控制：
+**重要**：OverlayFS 快照功能现在**默认启用**，无需手动配置。
 
-**方式一：Docker Compose**
+当 OpenSandbox Server 检测到使用 `browser-cdp` 镜像时，会自动注入 `ENABLE_OVERLAYFS_SNAPSHOTS=true` 环境变量。
+
+**配置方式**：
+
+在 `~/.sandbox.toml` 中配置：
+
+```toml
+[browser]
+enable_overlayfs_snapshots = true  # 默认为 true
+```
+
+**禁用方式**（不推荐）：
+
+```toml
+[browser]
+enable_overlayfs_snapshots = false
+```
+
+### 4.2 Docker 特权模式要求
+
+OverlayFS 需要容器以特权模式运行。OpenSandbox Server 会自动处理此配置。
+
+**手动运行时需要添加**：
 
 ```yaml
-version: '3.8'
+# Docker Compose
 services:
   browser-cdp:
     image: opensandbox/browser-cdp:latest
-    environment:
-      - ENABLE_OVERLAYFS_SNAPSHOTS=true
-      - OVERLAY_BASE_DIR=/var/lib/overlay
+    privileged: true  # OverlayFS 需要
     volumes:
       - /var/lib/overlay:/var/lib/overlay
-    privileged: true  # OverlayFS 需要 privileged 模式
 ```
 
-**方式二：Docker Run**
-
 ```bash
+# Docker Run
 docker run -d \
   --name browser-cdp \
   --privileged \
-  -e ENABLE_OVERLAYFS_SNAPSHOTS=true \
-  -e OVERLAY_BASE_DIR=/var/lib/overlay \
   -v /var/lib/overlay:/var/lib/overlay \
   opensandbox/browser-cdp:latest
 ```
 
-### 4.2 快照管理 API
+### 4.3 快照管理 API
 
 启用 OverlayFS 后，可使用以下 API 管理快照：
 
@@ -235,13 +256,11 @@ curl -X POST http://localhost:8080/browser/snapshot/rollback/base-snapshot
 curl http://localhost:8080/browser/snapshot
 ```
 
-### 4.3 性能对比
+### 4.4 性能目标
 
-| 场景 | 无 OverlayFS | 有 OverlayFS |
-|------|-------------|--------------|
-| 冷启动 | 3-5秒 | 3-5秒 |
-| 热启动（快照） | N/A | 1-2秒 |
-| 回滚启动 | N/A | < 1秒 |
+- 冷启动（无快照）：3-5秒
+- 热启动（有快照）：1-2秒
+- 回滚启动：< 1秒
 
 ## 监控与维护
 
