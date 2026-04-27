@@ -5,6 +5,11 @@ CDP_PORT=${BROWSER_CDP_PORT:-0}
 USER_DATA_DIR=${1:-/tmp/browser-data-$$}
 ENABLE_OVERLAYFS=${ENABLE_OVERLAYFS_SNAPSHOTS:-false}
 
+# If port is 0, generate a random port in range 30000-60000
+if [ "$CDP_PORT" = "0" ]; then
+    CDP_PORT=$((RANDOM % 30000 + 30000))
+fi
+
 # OverlayFS configuration
 OVERLAY_BASE_DIR=${OVERLAY_BASE_DIR:-/var/lib/overlay}
 OVERLAY_WORK_DIR="$OVERLAY_BASE_DIR/work"
@@ -46,29 +51,14 @@ fi
 "$BROWSER_BIN" \
     --remote-debugging-port="$CDP_PORT" \
     --user-data-dir="$USER_DATA_DIR" \
+    --remote-debugging-address=0.0.0.0 \
+    --remote-allow-origins=* \
     $BROWSER_LAUNCH_ARGS \
     "$@" &
 
 BROWSER_PID=$!
 
-# Wait for browser to start
-sleep 2
-
-# If port was 0 (auto-assign), find the actual port
-if [ "$CDP_PORT" = "0" ]; then
-    # Find the listening port for this process
-    CDP_PORT=$(ss -tlnp 2>/dev/null | grep "pid=$BROWSER_PID" | awk '{print $4}' | cut -d: -f2 | head -1)
-    if [ -z "$CDP_PORT" ]; then
-        # Fallback: use lsof
-        CDP_PORT=$(lsof -nP -iTCP -sTCP:LISTEN -p $BROWSER_PID 2>/dev/null | awk '{print $9}' | cut -d: -f2 | head -1)
-    fi
-    # If still empty, default to 9222
-    if [ -z "$CDP_PORT" ]; then
-        CDP_PORT=9222
-    fi
-fi
-
-# Output the actual CDP port to stdout
+# Output the CDP port to stdout
 echo "$CDP_PORT"
 
 # Keep the script running (don't exit, let browser run)
