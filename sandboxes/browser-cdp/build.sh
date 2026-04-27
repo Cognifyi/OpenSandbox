@@ -17,7 +17,20 @@ set -ex
 
 TAG=${TAG:-latest}
 
-# Build base image first
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Build execd base image first
+cd "$REPO_ROOT"
+docker buildx build \
+  -t opensandbox/execd:${TAG} \
+  -f components/execd/Dockerfile \
+  --platform linux/amd64 \
+  .
+
+# Build browser-cdp-base image
+cd "$SCRIPT_DIR"
 docker buildx build \
   -t opensandbox/browser-cdp-base:${TAG} \
   -f Dockerfile_base \
