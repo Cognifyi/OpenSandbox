@@ -15,5 +15,7 @@ else
     sleep 2
 fi
 
-# Keep container running
-wait
+# Keep container running by tailing /dev/null
+# execd is managed by OpenSandbox bootstrap.sh and runs independently
+echo "browser-entrypoint.sh: keeping container alive for execd"
+tail -f /dev/null
