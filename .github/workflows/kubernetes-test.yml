@@ -1,6 +1,7 @@
 name: Sandbox Kubernetes Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
     paths:
