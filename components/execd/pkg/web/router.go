@@ -91,6 +91,16 @@ func NewRouter(accessToken string) *gin.Engine {
 		pty.GET("/:sessionId/ws", controller.PTYSessionWebSocket)
 	}
 
+	browser := r.Group("/browser")
+	{
+		browser.POST("", withBrowser(func(c *controller.BrowserController) { c.CreateBrowser() }))
+		browser.DELETE("/kill/:sessionId", withBrowser(func(c *controller.BrowserController) { c.KillBrowser() }))
+		browser.GET("", withBrowser(func(c *controller.BrowserController) { c.ListBrowsers() }))
+		browser.POST("/snapshot", withBrowser(func(c *controller.BrowserController) { c.CreateSnapshot() }))
+		browser.POST("/snapshot/rollback/:name", withBrowser(func(c *controller.BrowserController) { c.RollbackSnapshot() }))
+		browser.GET("/snapshot", withBrowser(func(c *controller.BrowserController) { c.ListSnapshots() }))
+	}
+
 	return r
 }
 
@@ -115,6 +125,12 @@ func withMetric(fn func(*controller.MetricController)) gin.HandlerFunc {
 func withPTY(fn func(*controller.PTYController)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		fn(controller.NewPTYController(ctx))
+	}
+}
+
+func withBrowser(fn func(*controller.BrowserController)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		fn(controller.NewBrowserController(ctx))
 	}
 }
 
