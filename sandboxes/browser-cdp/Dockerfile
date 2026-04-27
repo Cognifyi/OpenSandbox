@@ -53,14 +53,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# Set Playwright browsers path before installation
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/bin/playwright-browsers
+
 # Install Playwright and Chromium
 RUN source /opt/opensandbox/code-interpreter-env.sh node 22 && \
     npm install -g playwright && \
     npx playwright install chromium --with-deps
 
-# Find and set the actual Chromium path
-RUN CHROMIUM_PATH=$(npx playwright which chromium) && \
-    echo "CHROMIUM_PATH=$CHROMIUM_PATH" >> /opt/opensandbox/code-interpreter-env.sh
+# Set Chromium path to fixed location (following browserless approach)
+ENV CHROMIUM_PATH=/usr/local/bin/playwright-browsers/chromium-*/chrome-linux/chrome
 
 # Copy scripts
 COPY scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh

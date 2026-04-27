@@ -2,17 +2,20 @@
 
 # Use Playwright-installed Chromium path
 if [ -n "$CHROMIUM_PATH" ]; then
-    BROWSER_BIN="$CHROMIUM_PATH"
+    # Expand wildcard if present
+    BROWSER_BIN=$(echo $CHROMIUM_PATH)
 else
     # Try to find Playwright chromium
-    PLAYWRIGHT_CHROMIUM=$(npx playwright which chromium 2>/dev/null || echo "")
-    if [ -n "$PLAYWRIGHT_CHROMIUM" ]; then
+    PLAYWRIGHT_CHROMIUM=$(npx playwright show-trace 2>&1 | grep -o '/root/.cache/ms-playwright/chromium-[0-9]*/chrome-linux/chrome' | head -1)
+    if [ -n "$PLAYWRIGHT_CHROMIUM" ] && [ -f "$PLAYWRIGHT_CHROMIUM" ]; then
         BROWSER_BIN="$PLAYWRIGHT_CHROMIUM"
     else
         # Fallback to common paths
-        BROWSER_BIN=${CHROMIUM_PATH:-/usr/bin/chromium-browser}
+        BROWSER_BIN="/usr/bin/chromium-browser"
     fi
 fi
+
+echo "Using browser binary: $BROWSER_BIN"
 
 CDP_PORT=${BROWSER_CDP_PORT:-0}
 USER_DATA_DIR=${1:-/tmp/browser-data-$$}
