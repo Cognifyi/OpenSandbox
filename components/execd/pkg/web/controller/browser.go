@@ -65,11 +65,17 @@ func (c *BrowserController) CreateBrowser() {
 		return
 	}
 
-	// Wait for CDP port to be ready (simplified implementation, needs polling in production)
-	time.Sleep(2 * time.Second)
+	// Get CDP port from environment variable
+	cdpPortEnv := os.Getenv("BROWSER_CDP_PORT")
+	port := 9222 // default
+	if cdpPortEnv != "" && cdpPortEnv != "0" {
+		if p, err := strconv.Atoi(cdpPortEnv); err == nil {
+			port = p
+		}
+	}
 
-	// Assume port 9222 (needs to be parsed from browser output in production)
-	port := 9222
+	// Wait for CDP port to be ready
+	time.Sleep(2 * time.Second)
 	session := &BrowserSession{
 		PID:       cmd.Process.Pid,
 		Port:      port,
