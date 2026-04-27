@@ -14,13 +14,15 @@
 # limitations under the License.
 
 
+ARG EXECD_VERSION=latest
+
+FROM opensandbox/execd:${EXECD_VERSION} AS execd-stage
+
 FROM opensandbox/browser-cdp-base:latest
 
 ARG TARGETARCH
-ARG EXECD_VERSION=latest
 
-# Copy execd binary from pre-built image
-COPY --from=opensandbox/execd:${EXECD_VERSION} /usr/local/bin/execd /usr/local/bin/execd
+COPY --from=execd-stage /usr/local/bin/execd /usr/local/bin/execd
 RUN chmod +x /usr/local/bin/execd
 
 # Copy scripts
