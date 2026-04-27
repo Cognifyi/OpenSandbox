@@ -60,29 +60,29 @@ func (c *BrowserController) CreateBrowser() {
 
 	// Launch browser and capture stdout to get the actual CDP port
 	cmd := exec.Command("/opt/opensandbox/browser-launch.sh", "/tmp/browser-"+strconv.FormatInt(time.Now().UnixNano(), 10))
-	stdout, err := cmd.StdoutPipe()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Error("Failed to create stdout pipe: %v", err)
-		c.ctx.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := cmd.Start(); err != nil {
 		log.Error("Failed to start browser: %v", err)
 		c.ctx.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Read the CDP port from stdout
-	portBuf := make([]byte, 10)
-	n, err := stdout.Read(portBuf)
-	if err != nil {
-		log.Error("Failed to read CDP port: %v", err)
-		c.ctx.JSON(500, gin.H{"error": "Failed to read CDP port"})
+	// Parse the CDP port from output (format: CDP_PORT:12345)
+	outputStr := string(output)
+	portStr := ""
+	for _, line := range strings.Split(outputStr, "\n") {
+		if strings.HasPrefix(line, "CDP_PORT:") {
+			portStr = strings.TrimSpace(strings.TrimPrefix(line, "CDP_PORT:"))
+			break
+		}
+	}
+
+	if portStr == "" {
+		log.Error("Failed to find CDP_PORT in output: %s", outputStr)
+		c.ctx.JSON(500, gin.H{"error": "Failed to find CDP_PORT in output"})
 		return
 	}
 
-	portStr := strings.TrimSpace(string(portBuf[:n]))
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		log.Error("Failed to parse CDP port from output: %s, error: %v", portStr, err)

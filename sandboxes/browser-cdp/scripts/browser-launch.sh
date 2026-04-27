@@ -53,8 +53,8 @@ fi
 
 BROWSER_PID=$!
 
-# Output the CDP port to stdout
-echo "$CDP_PORT"
+# Output the CDP port to stdout in a specific format
+echo "CDP_PORT:$CDP_PORT"
 
 # Keep the script running (don't exit, let browser run)
 wait $BROWSER_PID
