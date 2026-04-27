@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 BROWSER_BIN=${CHROMIUM_PATH:-/usr/bin/chromium-browser}
 CDP_PORT=${BROWSER_CDP_PORT:-0}
@@ -62,6 +61,10 @@ if [ "$CDP_PORT" = "0" ]; then
     if [ -z "$CDP_PORT" ]; then
         # Fallback: use lsof
         CDP_PORT=$(lsof -nP -iTCP -sTCP:LISTEN -p $BROWSER_PID 2>/dev/null | awk '{print $9}' | cut -d: -f2 | head -1)
+    fi
+    # If still empty, default to 9222
+    if [ -z "$CDP_PORT" ]; then
+        CDP_PORT=9222
     fi
 fi
 
