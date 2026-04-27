@@ -31,7 +31,7 @@ COPY scripts/browser-entrypoint.sh /opt/opensandbox/browser-entrypoint.sh
 RUN chmod +x /opt/opensandbox/browser-launch.sh /opt/opensandbox/browser-entrypoint.sh
 
 # Environment variables
-ENV EXECD_PORT=44772 \
+ENV EXECD_PORT=8080 \
     EXECD_ACCESS_TOKEN= \
     BROWSER_LAUNCH_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --disable-software-rasterizer --disable-background-networking --disable-default-apps --disable-extensions --disable-sync --disable-translate --no-first-run --safebrowsing-disable-auto-update" \
     BROWSER_CDP_PORT=0 \
