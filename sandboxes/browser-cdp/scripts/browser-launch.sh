@@ -1,6 +1,19 @@
 #!/bin/bash
 
-BROWSER_BIN=${CHROMIUM_PATH:-/usr/bin/chromium-browser}
+# Use Playwright-installed Chromium path
+if [ -n "$CHROMIUM_PATH" ]; then
+    BROWSER_BIN="$CHROMIUM_PATH"
+else
+    # Try to find Playwright chromium
+    PLAYWRIGHT_CHROMIUM=$(npx playwright which chromium 2>/dev/null || echo "")
+    if [ -n "$PLAYWRIGHT_CHROMIUM" ]; then
+        BROWSER_BIN="$PLAYWRIGHT_CHROMIUM"
+    else
+        # Fallback to common paths
+        BROWSER_BIN=${CHROMIUM_PATH:-/usr/bin/chromium-browser}
+    fi
+fi
+
 CDP_PORT=${BROWSER_CDP_PORT:-0}
 USER_DATA_DIR=${1:-/tmp/browser-data-$$}
 ENABLE_OVERLAYFS=${ENABLE_OVERLAYFS_SNAPSHOTS:-false}
@@ -19,6 +32,7 @@ OVERLAY_MERGE_DIR="$OVERLAY_BASE_DIR/merged"
 
 # Setup OverlayFS if enabled
 if [ "$ENABLE_OVERLAYFS" = "true" ]; then
+    echo "Setting up OverlayFS..."
     # Create OverlayFS directory structure
     mkdir -p "$OVERLAY_WORK_DIR" "$OVERLAY_UPPER_DIR" "$OVERLAY_LOWER_DIR" "$OVERLAY_MERGE_DIR"
 
@@ -32,12 +46,19 @@ if [ "$ENABLE_OVERLAYFS" = "true" ]; then
         -o lowerdir="$OVERLAY_LOWER_DIR" \
         -o upperdir="$OVERLAY_UPPER_DIR" \
         -o workdir="$OVERLAY_WORK_DIR" \
-        "$OVERLAY_MERGE_DIR"
+        "$OVERLAY_MERGE_DIR" || {
+        echo "Warning: Failed to mount OverlayFS, using regular directory"
+        USER_DATA_DIR="/tmp/browser-data-$$"
+        mkdir -p "$USER_DATA_DIR"
+    }
 
     # Use merged directory as user data directory
-    USER_DATA_DIR="$OVERLAY_MERGE_DIR/chromium-profile"
-    mkdir -p "$USER_DATA_DIR"
+    if mountpoint -q "$OVERLAY_MERGE_DIR"; then
+        USER_DATA_DIR="$OVERLAY_MERGE_DIR/chromium-profile"
+        mkdir -p "$USER_DATA_DIR"
+    fi
 else
+    echo "OverlayFS disabled, using regular directory"
     # Create user data directory directly
     mkdir -p "$USER_DATA_DIR"
 fi

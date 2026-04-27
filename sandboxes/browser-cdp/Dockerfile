@@ -58,6 +58,10 @@ RUN source /opt/opensandbox/code-interpreter-env.sh node 22 && \
     npm install -g playwright && \
     npx playwright install chromium --with-deps
 
+# Find and set the actual Chromium path
+RUN CHROMIUM_PATH=$(npx playwright which chromium) && \
+    echo "CHROMIUM_PATH=$CHROMIUM_PATH" >> /opt/opensandbox/code-interpreter-env.sh
+
 # Copy scripts
 COPY scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh
 COPY scripts/browser-entrypoint.sh /opt/opensandbox/browser-entrypoint.sh
