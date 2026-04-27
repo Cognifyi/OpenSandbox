@@ -28,10 +28,10 @@ ARG TARGETARCH
 COPY --from=execd-stage /execd /usr/local/bin/execd
 RUN chmod +x /usr/local/bin/execd
 
-# Install Chromium and dependencies (use Google Chrome repository instead of snap)
+# Install Xvfb and browser dependencies (following browserless approach)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    gnupg \
+    xvfb \
+    dumb-init \
     fonts-liberation \
     libasound2t64 \
     libatk-bridge2.0-0 \
@@ -53,17 +53,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome Stable
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Playwright and Puppeteer
+# Install Playwright and Chromium
 RUN source /opt/opensandbox/code-interpreter-env.sh node 22 && \
-    npm install -g playwright puppeteer-core && \
-    npx playwright install chromium
+    npm install -g playwright && \
+    npx playwright install chromium --with-deps
 
 # Copy scripts
 COPY scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh
@@ -72,10 +65,10 @@ RUN chmod +x /opt/opensandbox/browser-launch.sh /opt/opensandbox/browser-entrypo
 
 # Environment variables
 ENV EXECD_PORT=44772 \
-    BROWSER_LAUNCH_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --disable-software-rasterizer --disable-background-networking --disable-default-apps --disable-extensions --disable-sync --disable-translate --no-first-run --safebrowsing-disable-auto-update" \
+    BROWSER_LAUNCH_ARGS="--no-sandbox --disable-dev-shm-usage" \
     BROWSER_CDP_PORT=0 \
     ENABLE_OVERLAYFS_SNAPSHOTS=false \
-    CHROMIUM_PATH=/usr/bin/google-chrome
+    PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
 
 WORKDIR /workspace
 ENTRYPOINT ["/opt/opensandbox/browser-entrypoint.sh"]
