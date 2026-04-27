@@ -19,14 +19,11 @@ OVERLAY_MERGE_DIR="$OVERLAY_BASE_DIR/merged"
 
 # Setup OverlayFS if enabled
 if [ "$ENABLE_OVERLAYFS" = "true" ]; then
-    echo "Setting up OverlayFS for snapshot support..."
-
     # Create OverlayFS directory structure
     mkdir -p "$OVERLAY_WORK_DIR" "$OVERLAY_UPPER_DIR" "$OVERLAY_LOWER_DIR" "$OVERLAY_MERGE_DIR"
 
     # Initialize lower layer if empty (copy from base browser profile)
     if [ -z "$(ls -A $OVERLAY_LOWER_DIR)" ]; then
-        echo "Initializing lower layer with base browser profile..."
         mkdir -p "$OVERLAY_LOWER_DIR/chromium-profile"
     fi
 
@@ -40,8 +37,6 @@ if [ "$ENABLE_OVERLAYFS" = "true" ]; then
     # Use merged directory as user data directory
     USER_DATA_DIR="$OVERLAY_MERGE_DIR/chromium-profile"
     mkdir -p "$USER_DATA_DIR"
-
-    echo "OverlayFS mounted at $OVERLAY_MERGE_DIR"
 else
     # Create user data directory directly
     mkdir -p "$USER_DATA_DIR"
