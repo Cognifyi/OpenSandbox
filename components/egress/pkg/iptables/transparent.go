@@ -24,8 +24,6 @@ import (
 	"github.com/alibaba/opensandbox/egress/pkg/log"
 )
 
-// transparentHTTPRules returns argv lines for transparent OUTPUT redirect (append or delete via op).
-// op must be "-A" or "-D".
 func transparentHTTPRules(localPort int, mitmUID uint32, op string) [][]string {
 	target := strconv.Itoa(localPort)
 	uid := strconv.FormatUint(uint64(mitmUID), 10)
@@ -43,10 +41,7 @@ func transparentHTTPRules(localPort int, mitmUID uint32, op string) [][]string {
 	return append(loopRules, redir...)
 }
 
-// SetupTransparentHTTP redirects locally originated TCP 80/443 to localPort for processes
-// whose UID is not mitmUID.
-//
-// IPv4 only.
+// SetupTransparentHTTP: non-mitm UIDs get OUTPUT tcp:80,443 → localPort; loopback and mitm’s traffic excluded.
 func SetupTransparentHTTP(localPort int, mitmUID uint32) error {
 	if runtime.GOOS != "linux" {
 		return fmt.Errorf("iptables transparent: only supported on linux")
@@ -69,8 +64,6 @@ func SetupTransparentHTTP(localPort int, mitmUID uint32) error {
 	return nil
 }
 
-// RemoveTransparentHTTP deletes rules installed by SetupTransparentHTTP with the same port and mitmUID.
-// Deletion order is reverse of insertion. Missing rules are ignored so teardown is best-effort.
 func RemoveTransparentHTTP(localPort int, mitmUID uint32) {
 	if runtime.GOOS != "linux" {
 		return

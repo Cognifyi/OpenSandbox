@@ -32,7 +32,7 @@ type mitmTransparent struct {
 	uid     uint32
 }
 
-// startMitmproxyTransparentIfEnabled launches Python mitmdump in transparent mode and installs iptables.
+// startMitmproxyTransparentIfEnabled starts mitmdump in transparent mode, waits for the listener, and installs OUTPUT REDIRECT, then syncs the CA.
 func startMitmproxyTransparentIfEnabled() (*mitmTransparent, error) {
 	if !constants.IsTruthy(os.Getenv(constants.EnvMitmproxyTransparent)) {
 		return nil, nil
