@@ -21,25 +21,13 @@ TAG=${TAG:-latest}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Build execd base image first
-cd "$REPO_ROOT"
-docker buildx build \
-  -t opensandbox/execd:${TAG} \
-  -f components/execd/Dockerfile \
-  --platform linux/amd64 \
-  .
-
-# Build browser-cdp-base image
+# Build browser-cdp image (includes execd build)
 cd "$SCRIPT_DIR"
-docker buildx build \
-  -t opensandbox/browser-cdp-base:${TAG} \
-  -f Dockerfile_base \
-  --platform linux/amd64 \
-  .
-
-# Build final image
 docker buildx build \
   -t opensandbox/browser-cdp:${TAG} \
   -f Dockerfile \
   --platform linux/amd64 \
+  --build-arg VERSION=${TAG} \
+  --build-arg BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+  --build-arg GIT_COMMIT=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown") \
   .

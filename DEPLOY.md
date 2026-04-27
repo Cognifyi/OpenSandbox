@@ -109,6 +109,7 @@ TAG=v1.0.0 ./build.sh
 
 构建完成后将生成两个镜像：
 
+- `opensandbox/execd:latest` - execd 服务镜像
 - `opensandbox/browser-cdp-base:latest` - 基础镜像（包含 Chromium、Playwright、Puppeteer）
 - `opensandbox/browser-cdp:latest` - 最终镜像（集成 execd）
 
@@ -116,10 +117,13 @@ TAG=v1.0.0 ./build.sh
 
 ```bash
 # 推送到 Docker Hub
+docker push opensandbox/execd:latest
 docker push opensandbox/browser-cdp:latest
 docker push opensandbox/browser-cdp-base:latest
 
 # 或推送到私有仓库
+docker tag opensandbox/execd:latest your-registry.com/opensandbox/execd:latest
+docker push your-registry.com/opensandbox/execd:latest
 docker tag opensandbox/browser-cdp:latest your-registry.com/opensandbox/browser-cdp:latest
 docker push your-registry.com/opensandbox/browser-cdp:latest
 ```
@@ -550,6 +554,42 @@ RUN apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 ---
 
+# 1. 创建 sandbox
+curl -X POST "https://sandbox.pazity.com/v1/sandboxes" \
+  -H "OPEN-SANDBOX-API-KEY: 111-111-222-aaa-aaa" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image": {
+      "uri": "opensandbox/browser-cdp:latest"
+    },
+    "entrypoint": ["/opt/opensandbox/browser-entrypoint.sh"],
+    "timeout": 600,
+    "resourceLimits": {
+      "cpu": "300m",
+      "memory": "1Gi"
+    }
+  }'
+
+# 2. 获取 execd endpoint（需要 use_server_proxy=true）
+curl -X GET "https://sandbox.pazity.com/v1/sandboxes/{sandbox_id}/endpoints/44772?use_server_proxy=true" \
+  -H "OPEN-SANDBOX-API-KEY: 111-111-222-aaa-aaa"
+
+# 3. 调用 execd 启动浏览器（端点是 /browser 不是 /browser/create）
+curl -X POST "{endpoint}/browser" \
+  -H "Content-Type: application/json" \
+  -H "OPEN-SANDBOX-API-KEY: 111-111-222-aaa-aaa"
+
+# 4. 构造 CDP URL（从第3步的响应获取 cdpPort）
+# CDP URL 格式: ws://{endpoint}/proxy/{cdpPort}
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  "ws://sandbox.pazity.com/sandboxes/f417fba7-98fe-4497-8c5d-cc3086e2bdf2/proxy/{port}"
+
+
+---
 **文档版本**: v1.0  
 **最后更新**: 2026-04-26  
 **维护者**: SuperAIHuman Labs
