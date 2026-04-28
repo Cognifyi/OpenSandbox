@@ -72,9 +72,11 @@ RUN chmod +x /opt/opensandbox/browser-launch.sh /opt/opensandbox/browser-entrypo
 # Environment variables
 ENV EXECD_PORT=44772 \
     BROWSER_LAUNCH_ARGS="--no-sandbox --disable-dev-shm-usage" \
+    BROWSER_HEADLESS=true \
     BROWSER_CDP_PORT=0 \
     ENABLE_OVERLAYFS_SNAPSHOTS=false \
-    PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+    BROWSER_OVERLAYFS_SNAPSHOT_BACKEND="" \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/local/bin/playwright-browsers
 
 WORKDIR /workspace
 ENTRYPOINT ["/opt/opensandbox/browser-entrypoint.sh"]

@@ -10,8 +10,12 @@ export JUPYTER_TOKEN=""
 [ -f /tmp/.X99-lock ] && rm -f /tmp/.X99-lock
 
 _kill_procs() {
-  kill -TERM $execd_pid
-  kill -TERM $xvfb_pid
+  if [ -n "${execd_pid:-}" ]; then
+    kill -TERM "$execd_pid" 2>/dev/null || true
+  fi
+  if [ -n "${xvfb_pid:-}" ]; then
+    kill -TERM "$xvfb_pid" 2>/dev/null || true
+  fi
 }
 
 # Relay quit commands to processes
@@ -36,8 +40,14 @@ fi
 
 # Keep container running
 echo "browser-entrypoint.sh: keeping container alive for execd"
-wait $execd_pid
+if [ -n "${execd_pid:-}" ]; then
+  wait "$execd_pid"
+else
+  while pgrep -x execd > /dev/null; do
+    sleep 1
+  done
+fi
 
-if [ ! -z "$xvfb_pid" ]; then
-  wait $xvfb_pid
+if [ -n "${xvfb_pid:-}" ]; then
+  wait "$xvfb_pid"
 fi
