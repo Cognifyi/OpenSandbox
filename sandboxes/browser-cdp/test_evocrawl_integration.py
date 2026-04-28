@@ -118,8 +118,8 @@ def test_browser_execute(session_id: str):
     
     endpoint = f"/v2/browser/{session_id}/execute"
     data = {
-        "code": "print('Hello from OpenSandbox!')",
-        "language": "python",
+        "code": "console.log('Hello from OpenSandbox!')",
+        "language": "node",
         "timeout": 30,
         "responseFormat": "json"
     }

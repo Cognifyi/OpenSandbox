@@ -261,6 +261,14 @@ func (c *CodeInterpretingController) runCodeJSON(request model.RunCodeRequest) {
 		response.Error = fmt.Sprintf("%s: %s", execError.EName, execError.EValue)
 	}
 
+	// Include stderr in output if present
+	if errorBuffer.Len() > 0 {
+		if response.Output != "" {
+			response.Output += "\n"
+		}
+		response.Output += errorBuffer.String()
+	}
+
 	telemetry.RecordExecutionDuration(
 		ctx,
 		"run_code",
