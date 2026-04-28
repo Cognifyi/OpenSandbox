@@ -16,30 +16,31 @@
 set -ex
 
 TAG=${TAG:-latest}
+VERSION=${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo "dev")}
+GIT_COMMIT=${GIT_COMMIT:-$(git rev-parse HEAD 2>/dev/null || echo "unknown")}
+BUILD_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
 
 # Get the script directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Step 1: Build execd image from monorepo root
 cd "$REPO_ROOT"
-docker buildx build \
-  -t opensandbox/execd:${TAG} \
-  -f components/execd/Dockerfile \
-  --platform linux/amd64 \
-  --build-arg VERSION=${TAG} \
-  --build-arg BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-  --build-arg GIT_COMMIT=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-  .
 
-# Step 2: Build browser-cdp image (uses the execd image)
-cd "$SCRIPT_DIR"
+# Create and use buildx builder
+docker buildx rm browser-cdp-builder || true
+docker buildx create --use --name browser-cdp-builder
+docker buildx inspect --bootstrap
+docker buildx ls
+
+# Build browser-cdp image with inline execd build (multi-stage)
+# This builds execd from source in the same Dockerfile, avoiding MD5 mismatch issues
 docker buildx build \
   -t opensandbox/browser-cdp:${TAG} \
-  -f Dockerfile \
-  --platform linux/amd64 \
-  --no-cache \
-  --build-arg VERSION=${TAG} \
-  --build-arg BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-  --build-arg GIT_COMMIT=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown") \
+  -t sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/browser-cdp:${TAG} \
+  -f sandboxes/browser-cdp/Dockerfile \
+  --build-arg VERSION="${VERSION}" \
+  --build-arg GIT_COMMIT="${GIT_COMMIT}" \
+  --build-arg BUILD_TIME="${BUILD_TIME}" \
+  --platform linux/amd64,linux/arm64 \
+  --push \
   .
