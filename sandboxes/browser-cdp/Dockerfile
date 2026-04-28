@@ -62,7 +62,7 @@ RUN source /opt/opensandbox/code-interpreter-env.sh node 22 && \
     npx playwright install chromium --with-deps
 
 # Set Chromium path to fixed location (following browserless approach)
-ENV CHROMIUM_PATH=/usr/local/bin/playwright-browsers/chromium-*/chrome-linux/chrome
+ENV CHROMIUM_PATH=/usr/local/bin/playwright-browsers/chromium-1217/chrome-linux64/chrome
 
 # Copy scripts
 COPY scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh
