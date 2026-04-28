@@ -88,9 +88,9 @@ RUN source /opt/opensandbox/code-interpreter-env.sh node 22 && \
     npm install -g playwright && \
     npx playwright install chromium --with-deps
 
-# Copy scripts
-COPY scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh
-COPY scripts/browser-entrypoint.sh /opt/opensandbox/browser-entrypoint.sh
+# Copy scripts (paths relative to repo root build context)
+COPY sandboxes/browser-cdp/scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh
+COPY sandboxes/browser-cdp/scripts/browser-entrypoint.sh /opt/opensandbox/browser-entrypoint.sh
 RUN chmod +x /opt/opensandbox/browser-launch.sh /opt/opensandbox/browser-entrypoint.sh
 
 # Environment variables
