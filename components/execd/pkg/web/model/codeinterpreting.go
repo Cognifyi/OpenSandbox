@@ -28,8 +28,9 @@ import (
 
 // RunCodeRequest represents a code execution request.
 type RunCodeRequest struct {
-	Context CodeContext `json:"context,omitempty"`
-	Code    string      `json:"code" validate:"required"`
+	Context        CodeContext `json:"context,omitempty"`
+	Code           string      `json:"code" validate:"required"`
+	ResponseFormat string      `json:"response_format,omitempty"` // "sse" (default) or "json"
 }
 
 func (r *RunCodeRequest) Validate() error {
@@ -123,6 +124,16 @@ func (s ServerStreamEvent) Summary() string {
 		parts = append(parts, fmt.Sprintf("error=%s: %s", errLabel, truncateString(s.Error.EValue, 80)))
 	}
 	return strings.Join(parts, " ")
+}
+
+// RunCodeJSONResponse represents a JSON response for code execution.
+type RunCodeJSONResponse struct {
+	Success        bool           `json:"success"`
+	Output         string         `json:"output,omitempty"`
+	Error          string         `json:"error,omitempty"`
+	ExecutionTime  int64          `json:"execution_time,omitempty"`
+	Results        map[string]any `json:"results,omitempty"`
+	ExecutionCount int            `json:"execution_count,omitempty"`
 }
 
 func truncateString(value string, maxCount int) string {

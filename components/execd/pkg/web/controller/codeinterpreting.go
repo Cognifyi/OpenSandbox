@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -108,7 +109,7 @@ func (c *CodeInterpretingController) InterruptCode() {
 	c.interrupt()
 }
 
-// RunCode executes code in a context and streams output via SSE.
+// RunCode executes code in a context and streams output via SSE or returns JSON.
 func (c *CodeInterpretingController) RunCode() {
 	var request model.RunCodeRequest
 	if err := c.bindJSON(&request); err != nil {
@@ -130,6 +131,13 @@ func (c *CodeInterpretingController) RunCode() {
 		return
 	}
 
+	// Handle JSON response mode for browser service integration
+	if request.ResponseFormat == "json" {
+		c.runCodeJSON(request)
+		return
+	}
+
+	// Default SSE mode
 	ctx, cancel := context.WithCancel(c.ctx.Request.Context())
 	defer cancel()
 	execStart := time.Now()
@@ -184,6 +192,83 @@ func (c *CodeInterpretingController) RunCode() {
 	}
 
 	waitForExecutionComplete(ctx, completeCh)
+}
+
+// runCodeJSON executes code and returns JSON response (for browser service integration).
+func (c *CodeInterpretingController) runCodeJSON(request model.RunCodeRequest) {
+	ctx, cancel := context.WithCancel(c.ctx.Request.Context())
+	defer cancel()
+	execStart := time.Now()
+
+	runCodeRequest := c.buildExecuteCodeRequest(request)
+
+	// Collect output in memory
+	var outputBuffer strings.Builder
+	var errorBuffer strings.Builder
+	var executionTime int64
+	var executionCount int
+	var results map[string]any
+	var execError *execute.ErrorOutput
+
+	// Custom event handler to collect output
+	eventsHandler := runtime.ExecuteResultHook{
+		OnExecuteStdout: func(data string) {
+			outputBuffer.WriteString(data)
+		},
+		OnExecuteStderr: func(data string) {
+			errorBuffer.WriteString(data)
+		},
+		OnExecuteComplete: func(duration time.Duration) {
+			executionTime = int64(duration / time.Millisecond)
+		},
+		OnExecuteResult: func(result map[string]any, count int) {
+			results = result
+			executionCount = count
+		},
+		OnExecuteError: func(err *execute.ErrorOutput) {
+			execError = err
+		},
+	}
+
+	runCodeRequest.Hooks = eventsHandler
+
+	err := codeRunner.Execute(runCodeRequest)
+	if err != nil {
+		telemetry.RecordExecutionDuration(
+			ctx,
+			"run_code",
+			"failure",
+			float64(time.Since(execStart))/float64(time.Millisecond),
+		)
+		c.RespondError(
+			http.StatusInternalServerError,
+			model.ErrorCodeRuntimeError,
+			fmt.Sprintf("error running codes %v", err),
+		)
+		return
+	}
+
+	// Build JSON response
+	response := model.RunCodeJSONResponse{
+		Success:        execError == nil,
+		Output:         outputBuffer.String(),
+		ExecutionTime:  executionTime,
+		ExecutionCount: executionCount,
+		Results:        results,
+	}
+
+	if execError != nil {
+		response.Error = fmt.Sprintf("%s: %s", execError.EName, execError.EValue)
+	}
+
+	telemetry.RecordExecutionDuration(
+		ctx,
+		"run_code",
+		"success",
+		float64(time.Since(execStart))/float64(time.Millisecond),
+	)
+
+	c.ctx.JSON(http.StatusOK, response)
 }
 
 // GetContext returns a specific code context by id.
