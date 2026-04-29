@@ -1,0 +1,5 @@
+# 直接基于当前镜像
+FROM opensandbox/browser-cdp:latest
+
+# 把你本地修复好的脚本拷贝进去，覆盖原有文件
+COPY scripts/browser-launch.sh /opt/opensandbox/browser-launch.sh

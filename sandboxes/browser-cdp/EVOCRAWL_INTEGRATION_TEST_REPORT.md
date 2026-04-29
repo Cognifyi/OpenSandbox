@@ -397,3 +397,11 @@ BROWSER_SERVICE_API_KEY=111-111-222-aaa-aaa
 **Report Generated**: 2026-04-28 13:15:11 UTC  
 **Test Duration**: ~30 seconds  
 **Tester**: Cascade AI Assistant
+
+
+```bash
+curl -X POST http://localhost:44772/code \
+  -H "Content-Type: application/json" \
+  -H "X-OpenSandbox-Api-Key: 111-111-222-aaa-aaa" \
+  -d '{"code":"console.log(\"test\")","language":"node","timeout":30,"response_format":"json"}'
+```
