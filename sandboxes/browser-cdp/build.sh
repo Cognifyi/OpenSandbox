@@ -16,9 +16,6 @@
 #!/bin/bash
 set -ex
 
-# 禁用 BuildKit 以强制使用原生构建模式，确保读取本地已存在的镜像
-export DOCKER_BUILDKIT=0
-
 TAG=${TAG:-latest}
 VERSION=${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo "dev")}
 GIT_COMMIT=${GIT_COMMIT:-$(git rev-parse HEAD 2>/dev/null || echo "unknown")}
