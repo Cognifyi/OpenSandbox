@@ -403,5 +403,5 @@ BROWSER_SERVICE_API_KEY=111-111-222-aaa-aaa
 curl -X POST http://localhost:44772/code \
   -H "Content-Type: application/json" \
   -H "X-OpenSandbox-Api-Key: 111-111-222-aaa-aaa" \
-  -d '{"code":"console.log(\"test\")","language":"node","timeout":30,"response_format":"json"}'
+  -d '{"code":"console.log(\"test\")","context":{"language":"node"},"response_format":"json"}'
 ```
