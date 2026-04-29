@@ -400,8 +400,15 @@ BROWSER_SERVICE_API_KEY=111-111-222-aaa-aaa
 
 
 ```bash
+# For bash commands, use /command endpoint (no Jupyter required)
+curl -X POST http://localhost:44772/command \
+  -H "Content-Type: application/json" \
+  -H "X-OpenSandbox-Api-Key: 111-111-222-aaa-aaa" \
+  -d '{"command":"echo 1111111"}'
+
+# For Python/JavaScript (requires Jupyter server)
 curl -X POST http://localhost:44772/code \
   -H "Content-Type: application/json" \
   -H "X-OpenSandbox-Api-Key: 111-111-222-aaa-aaa" \
-  -d '{"code":"console.log(\"test\")","context":{"language":"node"},"response_format":"json"}'
+  -d '{"code":"console.log(\"test\")","context":{"language":"javascript"},"response_format":"json"}'
 ```
